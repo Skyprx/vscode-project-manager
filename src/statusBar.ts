@@ -1,6 +1,10 @@
 import { StatusBarAlignment, StatusBarItem, window, workspace } from "vscode"; 
-import { Locators } from "../vscode-project-manager-core/src/model/locators";
-import { Project, ProjectStorage } from "../vscode-project-manager-core/src/model/storage";
+import { Locators } from "../vscode-project-manager-core/src/autodetect/locators";
+import { ProjectStorage } from "../vscode-project-manager-core/src/storage";
+import { codicons } from "vscode-ext-codicons";
+import { isRemoteUri } from "../vscode-project-manager-core/src/utils/remote";
+import { getCodiconFromUri } from "../vscode-project-manager-core/src/icons";
+import { Project } from "../vscode-project-manager-core/src/project";
 
 let statusItem: StatusBarItem;
 
@@ -22,7 +26,7 @@ export function showStatusBar(projectStorage: ProjectStorage, locators: Locators
   if (!statusItem) {
       statusItem = window.createStatusBarItem(StatusBarAlignment.Left);
   }
-  statusItem.text = "$(file-directory) ";
+  statusItem.text = getCodiconFromUri(workspace0) + " ";
   statusItem.tooltip = currentProjectPath;
 
   const openInNewWindow: boolean = workspace.getConfiguration("projectManager").get("openInNewWindowWhenClickingInStatusBar", false);
@@ -39,25 +43,26 @@ export function showStatusBar(projectStorage: ProjectStorage, locators: Locators
       return;
   }
 
-//   if (projectStorage.length() === 0) {
-//       return;
-//   }
-
-  let foundProject: Project = projectStorage.existsWithRootPath(currentProjectPath);
-  if (!foundProject) {
-      foundProject = locators.vscLocator.existsWithRootPath(currentProjectPath);
-  }
-  if (!foundProject) {
-      foundProject = locators.gitLocator.existsWithRootPath(currentProjectPath);
-  }
-  if (!foundProject) {
-      foundProject = locators.mercurialLocator.existsWithRootPath(currentProjectPath);
-  }
-  if (!foundProject) {
-      foundProject = locators.svnLocator.existsWithRootPath(currentProjectPath);
-  }
-  if (!foundProject) {
-      foundProject = locators.anyLocator.existsWithRootPath(currentProjectPath);
+  let foundProject: Project;
+  if (isRemoteUri(workspace0)) {
+      foundProject = projectStorage.existsRemoteWithRootPath(workspace0);
+  } else {
+      foundProject = projectStorage.existsWithRootPath(currentProjectPath);
+      if (!foundProject) {
+          foundProject = locators.vscLocator.existsWithRootPath(currentProjectPath);
+      }
+      if (!foundProject) {
+          foundProject = locators.gitLocator.existsWithRootPath(currentProjectPath);
+      }
+      if (!foundProject) {
+          foundProject = locators.mercurialLocator.existsWithRootPath(currentProjectPath);
+      }
+      if (!foundProject) {
+          foundProject = locators.svnLocator.existsWithRootPath(currentProjectPath);
+      }
+      if (!foundProject) {
+          foundProject = locators.anyLocator.existsWithRootPath(currentProjectPath);
+      }
   }
   if (foundProject) {
       statusItem.text += foundProject.name;
@@ -66,7 +71,7 @@ export function showStatusBar(projectStorage: ProjectStorage, locators: Locators
 }
 
 export function updateStatusBar(oldName: string, oldPath: string, newName: string): void {
-  if (statusItem.text === "$(file-directory) " + oldName && statusItem.tooltip === oldPath) {
-      statusItem.text = "$(file-directory) " + newName;
+  if (statusItem.text === codicons.file_directory + " " + oldName && statusItem.tooltip === oldPath) {
+      statusItem.text = codicons.file_directory + " " + newName;
   }
 }
