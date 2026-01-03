@@ -10,7 +10,7 @@ import walker = require("walker");
 import { PathUtils } from "../utils/path";
 import { Project } from "../core/project";
 import minimatch = require("minimatch");
-import { l10n } from "vscode";
+import { l10n, workspace } from "vscode";
 
 const CACHE_FILE = "projects_cache_";
 
@@ -51,6 +51,7 @@ export class CustomProjectLocator {
 	private ignoreProjectsWithinProjects: boolean;
 	private alreadyLocated: boolean;
 	private baseFolders: string[];
+    private excludeBaseFoldersFromResults: boolean;
 
 	constructor(public kind: string, public displayName: string,
 				public icon: string, public repositoryDetector: RepositoryDetector) {
@@ -60,6 +61,7 @@ export class CustomProjectLocator {
 		this.ignoreProjectsWithinProjects = false;
 		this.alreadyLocated = false;
 		this.baseFolders = [];
+		this.excludeBaseFoldersFromResults = false;
 		this.refreshConfig();
 		this.initializeCfg();
 	}
@@ -122,9 +124,10 @@ export class CustomProjectLocator {
 		}
 	}
 
-	public locateProjects() {
+	public async locateProjects(): Promise<DirList> {
 
 		let projectsDirList = this.baseFolders;
+        projectsDirList = await PathUtils.expandWithGlobPatterns(projectsDirList);
 		projectsDirList = PathUtils.updateWithPathSeparator(projectsDirList);
 		projectsDirList = PathUtils.handleSymlinks(projectsDirList);
 		this.baseFolders = projectsDirList.slice();
@@ -163,6 +166,17 @@ export class CustomProjectLocator {
 									this.isProjectWithinProjectIgnored(dir))
 							})
 							.on("dir", this.processDirectory)
+                            .on("symlink", (link, stat) => {
+                                if (!workspace.getConfiguration("projectManager").get<boolean>("supportSymlinksOnBaseFolders", false)) {
+                                    return;
+                                }
+                                if (this.isFolderIgnored(path.basename(link)) ||
+                                    this.isMaxDepthReached(this.getPathDepth(link), depth) ||
+                                    this.isProjectWithinProjectIgnored(link)) {
+                                    return;
+                                }
+                                this.processDirectory(link, stat);
+                            })
 							.on("error", this.handleError)
 							.on("end", () => {
 								resolve();
@@ -195,6 +209,9 @@ export class CustomProjectLocator {
 
 	public processDirectory = (absPath: string, stat: any) => {
 		// vscode.window.setStatusBarMessage(absPath, 600);
+		if (this.excludeBaseFoldersFromResults && this.isBaseFolder(absPath)) {
+			return;
+		}
 		if (this.repositoryDetector.isRepoDir(absPath)) {
 			this.addToList(absPath, this.repositoryDetector.decideProjectName(absPath));
 		}
@@ -220,8 +237,8 @@ export class CustomProjectLocator {
 			}
 			this.alreadyLocated = false;
 			this.locateProjects()
-			  .then(() => {
-				  resolve(true);
+                .then(() => {
+                    resolve(true);
 				})
 				.catch(error => {
 					reject(error)
@@ -271,6 +288,12 @@ export class CustomProjectLocator {
 			refreshedSomething = true;
 		}        
 
+		currentValue = config.get(this.kind + ".excludeBaseFoldersFromResults", false);
+		if (this.excludeBaseFoldersFromResults !== currentValue) {
+			this.excludeBaseFoldersFromResults = currentValue;
+			refreshedSomething = true;
+		}
+
 		currentValue = config.get(this.kind + ".maxDepthRecursion", -1);
 		if (this.maxDepth !== currentValue) {
 			this.maxDepth = currentValue;
@@ -290,6 +313,15 @@ export class CustomProjectLocator {
 		}
 
 		return refreshedSomething;
+	}
+
+	private isBaseFolder(folder: string): boolean {
+		if (!this.baseFolders || this.baseFolders.length === 0) {
+			return false;
+		}
+
+		const normalized = PathUtils.updateWithPathSeparator([folder])[0].toLowerCase();
+		return this.baseFolders.some(base => base.toLowerCase() === normalized);
 	}
 
 	private arraysAreEquals(array1, array2): boolean {

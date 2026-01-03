@@ -132,9 +132,24 @@ Just use the `when` clause `"inProjectManagerList"`, like:
 
 ```json
     {
+        "key": "cmd+j",
+        "command": "workbench.action.quickOpenSelectNext",
+        "when": "inProjectManagerList && isMac"
+    },
+    {
+        "key": "cmd+shift+j",
+        "command": "workbench.action.quickOpenSelectPrevious",
+        "when": "inProjectManagerList && isMac"
+    },
+    {
         "key": "ctrl+j",
         "command": "workbench.action.quickOpenSelectNext",
-        "when": "inProjectManagerList"
+        "when": "inProjectManagerList && (isWindows || isLinux)"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.quickOpenSelectPrevious",
+        "when": "inProjectManagerList && (isWindows || isLinux)"
     }
 ```
 
@@ -232,11 +247,11 @@ If you intend to _share_ projects between  **Stable** and **Insider** installati
 ```json
     "projectManager.git.baseFolders": [
         "c:\\Projects\\code",
-        "d:\\MoreProjects\\code-testing",
+        "d:\\MoreProjects\\code-*",
         "$home\\personal-coding"
     ]
 ```
-> Define the folders which contains the projects
+> Indicates folders or [glob patterns](https://code.visualstudio.com/docs/editor/glob-patterns) to search for projects
 
 ```json
     "projectManager.git.ignoredFolders": [
@@ -247,14 +262,19 @@ If you intend to _share_ projects between  **Stable** and **Insider** installati
         "fork*"
     ],
 ```
-> Define which folders should be ignored (inside the BaseFolders).
-
-> It supports `glob` patterns
+> Indicates folders or [glob patterns](https://code.visualstudio.com/docs/editor/glob-patterns) to be ignored when searching for projects
 
 ```json
     "projectManager.git.maxDepthRecursion": 4
 ```
 > Define how deeps it should search for projects
+
+* Exclude the base folders themselves from the auto-detected projects list (`false` by default)
+
+```json
+    "projectManager.any.excludeBaseFoldersFromResults": true
+```
+> When enabled, the **Any** base folders configured in `projectManager.any.baseFolders` are not returned as projects themselves, only their matching subfolders are.
 
 * Should ignore projects found inside other projects? (`false` by default)
 
