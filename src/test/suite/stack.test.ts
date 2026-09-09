@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+*  Copyright (c) Alessandro Fragnani. All rights reserved.
+*  Licensed under the GPLv3 License. See License.md in the project root for license information.
+*--------------------------------------------------------------------------------------------*/
+
 //
 // Note: This example test is leveraging the Mocha test framework.
 // Please refer to their documentation on https://mochajs.org/ for help.
@@ -18,7 +23,7 @@ suite("Stack Tests", () => {
     
     setup( () => {
         stack = new myStack.Stack();        
-    })
+    });
 
     // Defines a Mocha unit test
     test("Something 1", () => {
@@ -45,5 +50,13 @@ suite("Stack Tests", () => {
         stack.push("item 0");
         stack.push("item 0");
         assert.equal(stack.length(), 1);
+    });
+
+    test("Should rename an item in the stack", () => {
+        stack.push("item 0");
+        stack.push("item 1");
+        stack.rename("item 0", "item 0 renamed");
+        assert.equal(stack.getItem(0), "item 0 renamed");
+        assert.equal(stack.getItem(1), "item 1");
     });
 });

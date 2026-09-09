@@ -4,11 +4,15 @@
 
 <p align="center">
   <br />
-  <a title="Learn more about Project Manager" href="http://github.com/alefragnani/vscode-project-manager"><img src="https://raw.githubusercontent.com/alefragnani/vscode-project-manager/master/images/vscode-project-manager-logo-readme.png" alt="Project Manager Logo" width="70%" /></a>
+  <a title="Learn more about Project Manager" href="https://github.com/alefragnani/vscode-project-manager"><img src="https://raw.githubusercontent.com/alefragnani/vscode-project-manager/master/images/vscode-project-manager-logo-readme.png" alt="Project Manager Logo" width="70%" /></a>
 </p>
 
-# What's new in Project Manager 13.0
+English | [简体中文](README.zh-CN.md)
 
+# What's new in Project Manager 13.1
+
+* Improved **Tags** support
+* Improved **auto-detected projects** support
 * Fully Open Source again
 * Adds **Profile** support
 * Highlights the current project in the Side Bar
@@ -68,7 +72,7 @@ Here are some of the features that **Project Manager** provides:
 
 You can save the current folder/workspace as a **Project** at any time. You just need to type its name. 
 
-![Save](images/project-manager-save.png)
+![Save](docs/images/project-manager-save.png)
 
 > It suggests a name to you _automatically_ :)
  
@@ -112,7 +116,7 @@ For easier customization of your project list, you can edit the `projects.json` 
 
 > Be sure that the JSON file is well-formed. Otherwise, **Project Manager** will not be able to open it, and an error message like this should appear. In this case, you should use the `Open File` button to fix it.
 
-![Corrupted](images/project-manager-edit-corrupted-projectsJson.png)
+![Corrupted](docs/images/project-manager-edit-corrupted-projectsJson.png)
 
 ## Access 
 
@@ -132,9 +136,24 @@ Just use the `when` clause `"inProjectManagerList"`, like:
 
 ```json
     {
+        "key": "cmd+j",
+        "command": "workbench.action.quickOpenSelectNext",
+        "when": "inProjectManagerList && isMac"
+    },
+    {
+        "key": "cmd+shift+j",
+        "command": "workbench.action.quickOpenSelectPrevious",
+        "when": "inProjectManagerList && isMac"
+    },
+    {
         "key": "ctrl+j",
         "command": "workbench.action.quickOpenSelectNext",
-        "when": "inProjectManagerList"
+        "when": "inProjectManagerList && (isWindows || isLinux)"
+    },
+    {
+        "key": "ctrl+shift+j",
+        "command": "workbench.action.quickOpenSelectPrevious",
+        "when": "inProjectManagerList && (isWindows || isLinux)"
     }
 ```
 
@@ -179,7 +198,7 @@ You can choose how your projects are sorted
     "projectManager.sortList": "Name"
 ```
 
-![List](images/project-manager-list-sort-by-name.png)
+![List](docs/images/project-manager-list-sort-by-name.png)
 
 * Choose if the project list must be grouped by its _kind_ (**Favorites**, **Git**, **Mercurial**, **SVN** and **VS Code**).
 
@@ -222,39 +241,44 @@ You can choose how your projects are sorted
 If you intend to _share_ projects between  **Stable** and **Insider** installations, or if you store your settings in different locations (cloud services), you can indicate an _alternative_ location (folder path) for the `projects.json` file.
 
 ```json
-    "projectManager.projectsLocation": "C\\Users\\myUser\\AppData\\Roaming\\Code\\User"
+    "projectManager.projectsLocation": "C:\\Users\\myUser\\AppData\\Roaming\\Code\\User"
 ```
 
 > You can use `~` or `$home` while defining the folder path. It will be replaced by your HOME folder.
 
-* Automatic Detection of Projects (**Git** ![git](images/ico_git_branch.png), **Mercurial** ![git](images/ico_git_branch.png), **SVN** ![svn](images/ico_svn.png) and **VSCode** ![vscode](images/ico_file_code.png))
+* Automatic Detection of Projects (**Git** ![git](docs/images/ico_git_branch.png), **Mercurial** ![git](docs/images/ico_git_branch.png), **SVN** ![svn](docs/images/ico_svn.png) and **VSCode** ![vscode](docs/images/ico_file_code.png))
 
 ```json
     "projectManager.git.baseFolders": [
         "c:\\Projects\\code",
-        "d:\\MoreProjects\\code-testing",
+        "d:\\MoreProjects\\code-*",
         "$home\\personal-coding"
     ]
 ```
-> Define the folders which contains the projects
+> Indicates folders or [glob patterns](https://code.visualstudio.com/docs/editor/glob-patterns) to search for projects
 
 ```json
     "projectManager.git.ignoredFolders": [
         "node_modules", 
         "out", 
         "typings", 
-        "test"
+        "test",
         "fork*"
     ],
 ```
-> Define which folders should be ignored (inside the BaseFolders).
-
-> It supports `glob` patterns
+> Indicates folders or [glob patterns](https://code.visualstudio.com/docs/editor/glob-patterns) to be ignored when searching for projects
 
 ```json
     "projectManager.git.maxDepthRecursion": 4
 ```
 > Define how deeps it should search for projects
+
+* Exclude the base folders themselves from the auto-detected projects list (`false` by default)
+
+```json
+    "projectManager.any.excludeBaseFoldersFromResults": true
+```
+> When enabled, the **Any** base folders configured in `projectManager.any.baseFolders` are not returned as projects themselves, only their matching subfolders are.
 
 * Should ignore projects found inside other projects? (`false` by default)
 
@@ -302,6 +326,30 @@ If you intend to _share_ projects between  **Stable** and **Insider** installati
     ]
 ```
 
+* Controls how tag groups in the Favorites view are expanded or collapsed, and whether their state is remembered (`startExpanded` by default)
+
+  * `alwaysExpanded`: Tag groups are always expanded
+  * `alwaysCollapsed`: Tag groups are always collapsed
+  * `startExpanded`: Tag groups start expanded and remember your last expand/collapse state
+  * `startCollapsed`: Tag groups start collapsed and remember your last expand/collapse state
+
+```json
+    "projectManager.tags.collapseItems": "startExpanded"
+```
+
+* Show the current Git branch name for projects (`"never"` by default)
+
+```json
+    "projectManager.git.showBranchName": "never"
+```
+
+Supported values:
+- `"never"`: Never display the Git branch name
+- `"onlyInSideBar"`: Display the Git branch name only in the Side Bar
+- `"onlyInCommandPalette"`: Display the Git branch name only in the Command Palette
+- `"always"`: Display the Git branch name in all locations
+
+
 ## Available Colors
 
 * Choose the foreground color to highlight the current project in the Side Bar
@@ -315,15 +363,43 @@ If you intend to _share_ projects between  **Stable** and **Insider** installati
 
 The **Project Manager** extension has its own **Side Bar**, with a variety of commands to improve your productivity. 
 
-![Side Bar](images/vscode-project-manager-side-bar.png)
+![Side Bar](docs/images/vscode-project-manager-side-bar.png)
 
 ### Project Tags - View and Filter
 
 Starting in v12.3, you can now organize your Projects with **Tags**. 
 
-You can define your custom tags (via `projectManager.tags` setting), define multiple **tags** for each project, and filter the projects baded on their **tags**. 
+You can define your custom tags (via `projectManager.tags` setting), define multiple **tags** for each project, and filter the projects based on their **tags**. 
 
-![Side Bar](images/vscode-project-manager-side-bar-tags.gif)
+![Side Bar](docs/images/vscode-project-manager-side-bar-tags.gif)
+
+## Extension API
+
+If you are an extension developer and would like to interact with the **Project Manager** extension, you can use its public API. 
+
+First, you must add an `extensionDependencies` entry in your `package.json` file:
+
+```json
+  "extensionDependencies": [
+    "alefragnani.project-manager"
+  ],
+```
+
+Then, retrieve the extension instance with `vscode.extensions.getExtension("alefragnani.project-manager")` in your source code, to be able to use the methods that the extension exposes.
+
+```ts
+import { ProjectManagerPublicApi } from './api/projectManager/api';
+
+async function useProjectManagerApi() {
+    const projectManagerApi = <ProjectManagerPublicApi>vscode.extensions.getExtension('alefragnani.project-manager')?.exports;
+
+    await projectManagerApi.saveProject("My Project", "/path/to/project", ["work"], "Default");
+}
+```
+
+The contract is defined at [/api/api.d.ts](/api/api.d.ts).
+
+> More details on [VS Code Extension API reference](https://code.visualstudio.com/api/references/vscode-api#extensions)
 
 ## Installation and Configuration
 
@@ -334,4 +410,4 @@ You should follow the official documentation to:
 
 # License
 
-[GPL-3.0](LICENSE.md) &copy; Alessandro Fragnani
+[GPL-3.0 with VS Code Extension Host API Exception](LICENSE.md) &copy; Alessandro Fragnani

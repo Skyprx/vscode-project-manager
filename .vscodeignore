@@ -16,3 +16,13 @@ webpack.config.js
 **/.git
 **/.gitmodules
 .devcontainer/
+.nvmrc
+
+# agents
+AGENTS.md
+plans/**
+
+# gh-pages
+docs/index.html
+docs/styles.css
+docs/images/project-manager-save-and-list.gif

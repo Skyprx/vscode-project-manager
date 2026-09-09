@@ -14,11 +14,12 @@ import { ProjectStorage } from "../storage/storage";
 import { PathUtils } from "../utils/path";
 import { isRemotePath } from "../utils/remote";
 import { buildProjectUri } from "../utils/uri";
+import { getGitBranch } from "../utils/git";
 import { CommandLocation, ConfirmSwitchOnActiveWindowMode, OpenInCurrentWindowIfEmptyMode } from "../core/constants";
 
-function getProjects(itemsSorted: any[]): Promise<{}> {
+function getProjects(itemsSorted: any[]): Promise<any[]> {
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
 
         resolve(itemsSorted);
 
@@ -27,10 +28,10 @@ function getProjects(itemsSorted: any[]): Promise<{}> {
 
 function folderNotFound(name: string, projectStorage: ProjectStorage) {
 
-    const optionUpdateProject = <MessageItem> {
+    const optionUpdateProject = <MessageItem>{
         title: l10n.t("Update Project")
     };
-    const optionDeleteProject = <MessageItem> {
+    const optionDeleteProject = <MessageItem>{
         title: l10n.t("Delete Project")
     };
 
@@ -69,12 +70,12 @@ function canPickSelectedProject(item: QuickPickItem, projectStorage: ProjectStor
 }
 
 function getProjectsFromLocator(folders: any, locators: Locators, locatorToFilter: CustomProjectLocator, locatorToGetFrom: CustomProjectLocator) {
-    if (locatorToFilter && locatorToFilter !== locatorToGetFrom) { 
-        return folders 
+    if (locatorToFilter && locatorToFilter !== locatorToGetFrom) {
+        return folders;
     }
-    
-    if (!locators) { 
-        return folders 
+
+    if (!locators) {
+        return folders;
     }
 
     return locators.getLocatorProjects(<any[]>folders, locatorToGetFrom);
@@ -96,7 +97,7 @@ export async function pickProjects(projectStorage: ProjectStorage, locators: Loc
     const disposables: Disposable[] = [];
 
     try {
-        return await new Promise<Picked<Project> | undefined>((resolve, reject) => {
+        return await new Promise<Picked<Project> | undefined>((resolve) => {
             let items = [];
             const filterByTags = Container.context.globalState.get<string[]>("filterByTags", []);
             if (projectStorage) {
@@ -123,7 +124,7 @@ export async function pickProjects(projectStorage: ProjectStorage, locators: Loc
                     return getProjectsFromLocator(folders, locators, locatorToFilter, locators?.anyLocator);
                 })
                 .then((folders) => { // sort
-                    if ((<any[]> folders).length === 0) {
+                    if ((<any[]>folders).length === 0) {
                         window.showInformationMessage(l10n.t("No projects saved yet!"));
                         return resolve(undefined);
                     } else {
@@ -135,21 +136,30 @@ export async function pickProjects(projectStorage: ProjectStorage, locators: Loc
                         commands.executeCommand("setContext", "inProjectManagerList", true);
 
                         //
-                        folders =  (<any[]> folders).map(folder => {
+                        const showGitBranchInCommandPalette = workspace.getConfiguration("projectManager").get<string>("git.showBranchName", "never");
+                        folders = (<any[]>folders).map(folder => {
+                            let detail: string | undefined;
+                            if (showGitBranchInCommandPalette === "onlyInCommandPalette" || showGitBranchInCommandPalette === "always") {
+                                const gitBranch = getGitBranch(PathUtils.expandHomePath(folder.description));
+                                if (gitBranch) {
+                                    detail = `$(git-branch) ${gitBranch}`;
+                                }
+                            }
                             return {
                                 label: folder.label,
                                 description: folder.description,
+                                detail: detail,
                                 profile: folder.profile,
-                                buttons: showOpenInNewWindowButton ? [openInNewWindowButton] : []
-                            }
+                                buttons: showOpenInNewWindowButton ? [ openInNewWindowButton ] : []
+                            };
                         });
                         const input = window.createQuickPick();
                         input.placeholder = l10n.t("Loading projects (pick one)...");
                         input.matchOnDescription = workspace.getConfiguration("projectManager").get("filterOnFullPath", false);
                         input.matchOnDetail = false;
-                        input.items = <any[]> folders;
+                        input.items = <any[]>folders;
                         input.onDidChangeSelection(items => {
-                            const item = <any>items[0];
+                            const item = <any>items[ 0 ];
                             if (item) {
                                 if (!canPickSelectedProject(item, projectStorage)) {
                                     resolve(undefined);
@@ -190,8 +200,8 @@ export async function pickProjects(projectStorage: ProjectStorage, locators: Loc
                             commands.executeCommand("setContext", "inProjectManagerList", false);
                             resolve(undefined);
                             input.dispose();
-                            return
-                        })
+                            return;
+                        });
                         input.show();
 
                     }
@@ -214,16 +224,16 @@ export function shouldOpenInNewWindow(openInNewWindow: boolean, calledFrom: Comm
     }
 
     // Check for setting name before and after typo was corrected
-    const oldValue =  workspace.getConfiguration("projectManager").inspect("openInCurrenWindowIfEmpty");
-    const newValue =  workspace.getConfiguration("projectManager").inspect("openInCurrentWindowIfEmpty");
+    const oldValue = workspace.getConfiguration("projectManager").inspect("openInCurrenWindowIfEmpty");
+    const newValue = workspace.getConfiguration("projectManager").inspect("openInCurrentWindowIfEmpty");
 
     let config: string | unknown;
     if (oldValue.globalValue) {
         config = newValue.globalValue === undefined ? oldValue.globalValue : newValue.globalValue;
     } else {
-        config = workspace.getConfiguration("projectManager").get<string>("openInCurrentWindowIfEmpty")
+        config = workspace.getConfiguration("projectManager").get<string>("openInCurrentWindowIfEmpty");
     }
-    
+
     if (config === OpenInCurrentWindowIfEmptyMode.always) {
         return false;
     }
@@ -249,7 +259,7 @@ function shouldConfirmSwitchOnActiveWindow(calledFrom: CommandLocation): boolean
     }
 
     const config = workspace.getConfiguration("projectManager").get<string>("confirmSwitchOnActiveWindow", ConfirmSwitchOnActiveWindowMode.never);
-    
+
     switch (config) {
         case ConfirmSwitchOnActiveWindowMode.never:
             return false;
@@ -268,15 +278,15 @@ export async function canSwitchOnActiveWindow(calledFrom: CommandLocation): Prom
         return true;
     }
 
-    const optionOpenProject = <MessageItem> {
+    const optionOpenProject = <MessageItem>{
         title: l10n.t("Open Project")
     };
-    const answer = await window.showWarningMessage(l10n.t("Do you want to open the project in the active window?"), {modal: true}, optionOpenProject);
+    const answer = await window.showWarningMessage(l10n.t("Do you want to open the project in the active window?"), { modal: true }, optionOpenProject);
     return answer === optionOpenProject;
 }
 
 export async function openPickedProject(picked: Picked<Project>, forceNewWindow: boolean, calledFrom: CommandLocation) {
-    if (!picked) { return }
+    if (!picked) { return; }
 
     if (!picked.button) {
         if (!forceNewWindow && !await canSwitchOnActiveWindow(calledFrom)) {
